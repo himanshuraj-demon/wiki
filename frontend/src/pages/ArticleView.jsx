@@ -13,6 +13,7 @@ import CommentSection from '../components/CommentSection.jsx';
 import DiffViewer from '../components/DiffViewer.jsx';
 import { ArticleSkeleton } from '../components/SkeletonLoaders.jsx';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import { preprocessMarkdown } from '../utils/helpers.js';
 
 // Inline Markdown parser (matching Editor logic)
@@ -81,14 +82,30 @@ const parseMarkdown = (markdown = '') => {
   });
 
   html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a class="wiki-link" href="$2" target="_blank">$1</a>');
-  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, '<div class="my-6 text-center"><img src="$2" alt="$1" class="rounded-xl border border-gray-200 dark:border-slate-800 max-h-96 mx-auto" /><p class="text-center text-xs text-gray-500 mt-2 font-medium">$1</p></div>');
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => {
+    let floatClass = '';
+    let cleanAlt = alt;
+    if (alt.includes('| right') || alt.includes('|right')) {
+      floatClass = 'sm:float-right sm:ml-6 sm:clear-right w-full sm:w-80 mb-4';
+      cleanAlt = alt.replace(/\|?\s*right\s*/i, '').trim();
+    } else if (alt.includes('| left') || alt.includes('|left')) {
+      floatClass = 'sm:float-left sm:mr-6 sm:clear-left w-full sm:w-80 mb-4';
+      cleanAlt = alt.replace(/\|?\s*left\s*/i, '').trim();
+    } else {
+      floatClass = 'block my-6 text-center w-full';
+    }
+    return `<span class="${floatClass} border border-gray-200 dark:border-slate-800 bg-[#f8f9fa] dark:bg-slate-900 p-2 text-center rounded-xl shadow-sm block">
+      <img src="${url}" alt="${cleanAlt}" class="max-h-96 mx-auto rounded-md" />
+      ${cleanAlt ? `<span class="block text-center text-xs text-gray-500 mt-2 font-medium">${cleanAlt}</span>` : ''}
+    </span>`;
+  });
   html = html.replace(/^\s*-\s+(.*?)$/gm, '<li>$1</li>');
   html = html.replace(/(<li>.*?<\/li>)+/g, '<ul>$&</ul>');
 
   html = html.split('\n').map(line => {
     const trimmed = line.trim();
     if (!trimmed) return '';
-    if (trimmed.startsWith('<h') || trimmed.startsWith('<div') || trimmed.startsWith('<table') || trimmed.startsWith('<pre') || trimmed.startsWith('<ul') || trimmed.startsWith('<li') || trimmed.startsWith('</pre>') || trimmed.startsWith('</table>') || trimmed.startsWith('</div>') || trimmed.startsWith('</ul>')) {
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<div') || trimmed.startsWith('<table') || trimmed.startsWith('<pre') || trimmed.startsWith('<ul') || trimmed.startsWith('<li') || trimmed.startsWith('<details') || trimmed.startsWith('<summary') || trimmed.startsWith('</details>') || trimmed.startsWith('</summary>') || trimmed.startsWith('</pre>') || trimmed.startsWith('</table>') || trimmed.startsWith('</div>') || trimmed.startsWith('</ul>')) {
       return line;
     }
     return `<p>${line}</p>`;
@@ -450,110 +467,112 @@ export const ArticleView = () => {
       {activeTab === 'article' && (
         <div className="w-full">
           
-          {/* Wikipedia style float-right Infobox */}
-          <div className="float-right w-full sm:w-72 sm:ml-6 mb-6 p-4 bg-[#f8f9fa] dark:bg-slate-900 border border-[#a2a9b1] dark:border-slate-800 text-sm space-y-4">
-            
-            {/* Author Section */}
-            <div className="text-center border-b border-gray-250 dark:border-slate-800 pb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">
-                Page Author
-              </h3>
-              <img
-                src={articleData.author?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(articleData.author?.name || 'Admin')}`}
-                alt={articleData.author?.name}
-                className="h-14 w-14 rounded-full object-cover mx-auto mb-2 border border-gray-200"
-              />
-              <Link to={`/profile/${articleData.author?.email}`} className="block font-bold text-gray-900 dark:text-white hover:underline">
-                {articleData.author?.name}
-              </Link>
-              <span className="text-xs text-gray-500 capitalize">{articleData.author?.role}</span>
-            </div>
-
-            {/* Quick Actions / Tools Section */}
-            <div className="space-y-2.5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 border-b border-gray-200 dark:border-slate-800 pb-1">
-                Tools & Options
-              </h3>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <button
-                    onClick={handleShare}
-                    className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
-                  >
-                    <Share2 className="h-4 w-4 text-gray-400" /> Share page link
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={handlePrint}
-                    className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
-                  >
-                    <Printer className="h-4 w-4 text-gray-400" /> Print format
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => toast.success('Downloaded PDF bundle!')}
-                    className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
-                  >
-                    <Download className="h-4 w-4 text-gray-400" /> Download PDF
-                  </button>
-                </li>
-                {user && (
-                  <li className="border-t border-gray-200 dark:border-slate-850 pt-2 mt-2">
-                    <button
-                      onClick={handleReport}
-                      className="flex w-full items-center gap-2 text-red-500 hover:text-red-700 transition-colors"
-                    >
-                      <AlertTriangle className="h-4 w-4 text-red-400" /> Report page issue
-                    </button>
-                  </li>
-                )}
-              </ul>
-            </div>
-
-          </div>
-
-          {/* Inline Wikipedia Style Table of Contents */}
-          {headings.length > 0 && (
-            <div className="inline-block bg-[#f8f9fa] dark:bg-slate-900 border border-[#a2a9b1] dark:border-slate-800 p-4 mb-6 min-w-[260px] max-w-md text-sm">
-              <div className="flex items-center justify-between gap-8 mb-2 font-bold text-gray-800 dark:text-slate-200 border-b border-gray-250 dark:border-slate-800 pb-1">
-                <span className="flex items-center gap-1.5"><ListCollapse className="h-4.5 w-4.5" /> Contents</span>
-                <button 
-                  type="button"
-                  onClick={() => setTocCollapsed(!tocCollapsed)}
-                  className="text-xs text-iitgn-maroon hover:underline font-semibold dark:text-red-400"
-                >
-                  [{tocCollapsed ? 'show' : 'hide'}]
-                </button>
-              </div>
-              {!tocCollapsed && (
-                <ul className="space-y-1.5 list-none pl-0">
-                  {headings.map((h, idx) => (
-                    <li 
-                      key={idx} 
-                      className={`${h.level === 2 ? 'pl-4 text-xs' : 'font-medium text-sm'}`}
-                    >
-                      <a 
-                        href={`#${encodeURIComponent(h.text)}`}
-                        className="text-iitgn-maroon hover:underline dark:text-red-400 flex items-start gap-1"
-                      >
-                        <span className="text-gray-400 select-none font-mono text-[10px]">{idx + 1}</span>
-                        <span>{h.text}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
           {/* Main Article Body */}
           <div className="space-y-8">
             
             {/* Markdown parser content */}
-            <article className="wiki-content prose dark:prose-invert font-sans text-gray-850 dark:text-slate-200">
+            <article className="wiki-content prose dark:prose-invert font-sans text-gray-850 dark:text-slate-200 flow-root">
+              
+              {/* Wikipedia style float-right Infobox */}
+              <div className="float-right w-full sm:w-72 sm:ml-6 mb-6 p-4 bg-[#f8f9fa] dark:bg-slate-900 border border-[#a2a9b1] dark:border-slate-800 text-sm space-y-4">
+                
+                {/* Author Section */}
+                <div className="text-center border-b border-gray-200 dark:border-slate-800 pb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">
+                    Page Author
+                  </h3>
+                  <img
+                    src={articleData.author?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(articleData.author?.name || 'Admin')}`}
+                    alt={articleData.author?.name}
+                    className="h-14 w-14 rounded-full object-cover mx-auto mb-2 border border-gray-200"
+                  />
+                  <Link to={`/profile/${articleData.author?.email}`} className="block font-bold text-gray-900 dark:text-white hover:underline">
+                    {articleData.author?.name}
+                  </Link>
+                  <span className="text-xs text-gray-500 capitalize">{articleData.author?.role}</span>
+                </div>
+
+                {/* Quick Actions / Tools Section */}
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 border-b border-gray-200 dark:border-slate-800 pb-1">
+                    Tools & Options
+                  </h3>
+                  <ul className="space-y-2 text-xs">
+                    <li>
+                      <button
+                        onClick={handleShare}
+                        className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
+                      >
+                        <Share2 className="h-4 w-4 text-gray-400" /> Share page link
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={handlePrint}
+                        className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
+                      >
+                        <Printer className="h-4 w-4 text-gray-400" /> Print format
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => toast.success('Downloaded PDF bundle!')}
+                        className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
+                      >
+                        <Download className="h-4 w-4 text-gray-400" /> Download PDF
+                      </button>
+                    </li>
+                    {user && (
+                      <li className="border-t border-gray-200 dark:border-slate-850 pt-2 mt-2">
+                        <button
+                          onClick={handleReport}
+                          className="flex w-full items-center gap-2 text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          <AlertTriangle className="h-4 w-4 text-red-400" /> Report page issue
+                        </button>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+              </div>
+
+              {/* Inline Wikipedia Style Table of Contents */}
+              {headings.length > 0 && (
+                <div className="inline-block bg-[#f8f9fa] dark:bg-slate-900 border border-[#a2a9b1] dark:border-slate-800 p-4 mb-6 min-w-[260px] max-w-md text-sm">
+                  <div className="flex items-center justify-between gap-8 mb-2 font-bold text-gray-800 dark:text-slate-200 border-b border-gray-200 dark:border-slate-800 pb-1">
+                    <span className="flex items-center gap-1.5"><ListCollapse className="h-4.5 w-4.5" /> Contents</span>
+                    <button 
+                      type="button"
+                      onClick={() => setTocCollapsed(!tocCollapsed)}
+                      className="text-xs text-iitgn-maroon hover:underline font-semibold dark:text-red-400"
+                    >
+                      [{tocCollapsed ? 'show' : 'hide'}]
+                    </button>
+                  </div>
+                  {!tocCollapsed && (
+                    <ul className="space-y-1.5 list-none pl-0">
+                      {headings.map((h, idx) => (
+                        <li 
+                          key={idx} 
+                          className={`${h.level === 2 ? 'pl-4 text-xs' : 'font-medium text-sm'}`}
+                        >
+                          <a 
+                            href={`#${encodeURIComponent(h.text)}`}
+                            className="text-iitgn-maroon hover:underline dark:text-red-400 flex items-start gap-1"
+                          >
+                            <span className="text-gray-400 select-none font-mono text-[10px]">{idx + 1}</span>
+                            <span>{h.text}</span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
               <ReactMarkdown
+                rehypePlugins={[rehypeRaw]}
                 components={{
                   h1: ({ children, ...props }) => {
                     const text = flattenText(children);
@@ -564,6 +583,60 @@ export const ArticleView = () => {
                     const text = flattenText(children);
                     const id = encodeURIComponent(text.trim());
                     return <h2 id={id} {...props}>{children}</h2>;
+                  },
+                  img: ({ node, ...props }) => {
+                    let floatClass = '';
+                    let altText = props.alt || '';
+                    let widthClass = 'w-full sm:w-80';
+                    
+                    // Parse alt text for width/resizing overrides, e.g. "altText | right | w-40"
+                    const parts = altText.split('|').map(p => p.trim());
+                    altText = parts[0];
+                    
+                    // Default float behavior
+                    let align = '';
+                    let width = '';
+                    parts.slice(1).forEach(part => {
+                      const p = part.toLowerCase();
+                      if (p === 'right' || p === 'left') {
+                        align = p;
+                      } else if (p.startsWith('w-') || p.match(/^\d+$/)) {
+                        width = p;
+                      }
+                    });
+
+                    if (align === 'right') {
+                      floatClass = 'sm:float-right sm:ml-6 sm:clear-right mb-4';
+                    } else if (align === 'left') {
+                      floatClass = 'sm:float-left sm:mr-6 sm:clear-left mb-4';
+                    } else {
+                      floatClass = 'block my-6 text-center';
+                    }
+
+                    if (width) {
+                      if (width.startsWith('w-')) {
+                        widthClass = width; // e.g. w-40, w-60, w-96, etc.
+                      } else {
+                        widthClass = `w-[${width}px]`; // numeric value
+                      }
+                    } else {
+                      widthClass = align ? 'w-full sm:w-80' : 'w-full max-w-2xl';
+                    }
+
+                    return (
+                      <span className={`${floatClass} ${widthClass} border border-gray-200 dark:border-slate-800 bg-[#f8f9fa] dark:bg-slate-900 p-2 text-center rounded-xl shadow-sm block`}>
+                        <img
+                          {...props}
+                          alt={altText}
+                          className="max-h-96 mx-auto rounded-md object-contain"
+                        />
+                        {altText && (
+                          <span className="block text-center text-xs text-gray-500 mt-2 font-medium">
+                            {altText}
+                          </span>
+                        )}
+                      </span>
+                    );
                   }
                 }}
               >

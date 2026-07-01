@@ -1,16 +1,32 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  body {
-    @apply antialiased text-gray-900 bg-slate-50 font-sans;
-  }
-  
-  /* Dark mode global variables/styles */
-  .dark body {
-    @apply text-slate-100 bg-[#0e111a];
-  }
+@theme {
+  --color-iitgn-maroon-light: #a82c2c;
+  --color-iitgn-maroon: #851c1c;
+  --color-iitgn-maroon-dark: #611010;
+  --color-iitgn-gold-light: #f59e0b;
+  --color-iitgn-gold: #d97706;
+  --color-iitgn-gold-dark: #b45309;
+  --color-iitgn-blue-light: #4f46e5;
+  --color-iitgn-blue: #3730a3;
+  --color-wiki-border: #a2a9b1;
+  --color-wiki-bg: #f8f9fa;
+  --color-wiki-hover: #eaecf0;
+  --color-wiki-text: #202122;
+  --color-wiki-link: #0645ad;
+  --color-wiki-link-visited: #0b0080;
+  --font-sans: 'Inter', 'system-ui', '-apple-system', sans-serif;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  @apply antialiased text-gray-900 bg-slate-50 font-sans;
+}
+
+/* Dark mode global variables/styles */
+.dark body {
+  @apply text-slate-100 bg-[#0e111a];
 }
 
 /* Custom Webkit scrollbar for premium feel */
@@ -109,4 +125,74 @@
 }
 .glass-panel-hover {
   @apply hover:bg-white dark:hover:bg-slate-950 hover:shadow-md transition-all duration-300;
+}
+
+/* Accordion (details & summary) styles */
+.wiki-content details {
+  @apply border border-gray-200 dark:border-slate-800 rounded-xl my-4 overflow-hidden bg-white dark:bg-slate-950 transition-all duration-300;
+}
+.wiki-content details[open] {
+  @apply shadow-sm;
+}
+.wiki-content summary {
+  @apply px-4 py-3 font-semibold cursor-pointer list-none flex items-center justify-between bg-gray-50 dark:bg-slate-900 border-b border-transparent dark:border-transparent transition-all select-none;
+  outline: none;
+}
+.wiki-content details[open] summary {
+  @apply border-gray-200 dark:border-slate-800 bg-gray-100/80 dark:bg-slate-900;
+}
+.wiki-content summary::-webkit-details-marker {
+  display: none;
+}
+.wiki-content summary::after {
+  content: '+';
+  @apply font-mono text-lg text-gray-400 font-bold transition-transform duration-300;
+}
+.wiki-content details[open] summary::after {
+  content: '−';
+  @apply text-iitgn-maroon dark:text-red-400;
+}
+.wiki-content details > :not(summary) {
+  @apply p-4 leading-relaxed;
+}
+
+/* React Markdown Editor Lite Custom Styles and Dark Mode overrides */
+.rc-md-editor {
+  border-color: #e2e8f0 !important;
+}
+.dark .rc-md-editor {
+  background-color: #0b0f19 !important;
+  border-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+.dark .rc-md-editor .editor-container {
+  background-color: #0b0f19 !important;
+}
+.dark .rc-md-editor .editor-container .sec-md .input {
+  background-color: #0b0f19 !important;
+  color: #f1f5f9 !important;
+}
+.dark .rc-md-editor .editor-container .sec-html {
+  background-color: #0e111a !important;
+  border-left-color: #1e293b !important;
+}
+.dark .rc-md-editor .rc-md-navigation {
+  background-color: #0f172a !important;
+  border-bottom-color: #1e293b !important;
+}
+.dark .rc-md-editor .rc-md-navigation .navigation-nav .button {
+  color: #94a3b8 !important;
+}
+.dark .rc-md-editor .rc-md-navigation .navigation-nav .button:hover {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+.dark .rc-md-editor .editor-container .sec-md .input::-webkit-input-placeholder {
+  color: #475569 !important;
+}
+.dark .rc-md-editor .editor-container .sec-md .input::placeholder {
+  color: #475569 !important;
+}
+.rc-md-editor .editor-container .sec-html .custom-html-style {
+  background-color: transparent !important;
 }

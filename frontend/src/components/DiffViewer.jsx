@@ -52,10 +52,10 @@ export const DiffViewer = ({ oldText = '', newText = '', oldVersion = 'A', newVe
   const diffs = diffLines(oldText, newText);
 
   return (
-    <div className="rounded-xl border border-gray-250 bg-gray-50 overflow-hidden dark:border-slate-800 dark:bg-slate-900/50">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden dark:border-slate-800 dark:bg-slate-900/50">
       
       {/* Header Info */}
-      <div className="flex items-center gap-3 bg-gray-100 px-4 py-3 border-b border-gray-205 text-sm font-semibold text-gray-700 dark:bg-slate-800 dark:text-slate-350 dark:border-slate-700">
+      <div className="flex items-center gap-3 bg-gray-100 px-4 py-3 border-b border-gray-200 text-sm font-semibold text-gray-700 dark:bg-slate-800 dark:text-slate-350 dark:border-slate-700">
         <ArrowLeftRight className="h-4 w-4 text-iitgn-maroon dark:text-red-400" />
         <span>Comparing Version {oldVersion} (Removed) vs. Version {newVersion} (Added)</span>
       </div>

@@ -8,8 +8,10 @@ IITGN Wiki is a modern, responsive, and secure university knowledge sharing plat
 
 ### Frontend
 - **React 19** & **Vite** (Dev environment)
-- **React Router v6** (Client routing & route protectors)
-- **TailwindCSS v3** (Branded maroon & gold utility design)
+- **React Router v7** (Client routing & route protectors)
+- **TailwindCSS v4** (Branded maroon & gold utility design)
+- **react-markdown-editor-lite** (Synced scroll editing pane)
+- **rehype-raw** (Raw HTML block parsing for accordions)
 - **Axios** (API requests)
 - **React Query** (Query caching and mutate synchronization)
 - **React Hook Form** (Form validation)
@@ -87,8 +89,10 @@ Use these seeded accounts to test features and role privileges:
 
 - [x] **Collapsible Sidebar Layout:** Replicates Wikipedia's left side navigation scheme.
 - [x] **Global Search with Auto-Suggestions:** Real-time lookup by title, tags, or content.
-- [x] **Feature-Rich Markdown Editor:** Split workspace supporting headings, lists, tables, callouts, and internal links (`[[Article Title]]`).
+- [x] **synced-scroll Markdown Editor:** Integrates `react-markdown-editor-lite` with split workspace supporting headings, lists, tables, callouts, and internal links (`[[Article Title]]`).
 - [x] **Drag-and-Drop Image Uploader:** Automatically uploads dropped/pasted images and inserts their markdown code.
+- [x] **Wikipedia-style Floating & Resizing Images**: Align images to the right or left with text wrapping using `![alt | right | w-48](url)` syntax.
+- [x] **Interactive Collapsing Accordions**: Professional collapsing sections built using native `<details>` and `<summary>` HTML elements.
 - [x] **LCS Diff Comparison Viewer:** View color-coded line-by-line differences between historical revisions.
 - [x] **Threaded Comment Section (Talk Pages):** Discuss article facts with infinite nested replies and likes.
 - [x] **Individual User Dashboard:** Track statistics, unread notifications, drafts, and bookmarks.

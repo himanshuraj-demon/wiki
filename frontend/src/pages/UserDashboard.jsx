@@ -127,7 +127,7 @@ export const UserDashboard = () => {
         
         {/* Navigation Sidebar menu */}
         <div className="lg:col-span-1">
-          <div className="rounded-2xl border border-gray-250 bg-gray-50/50 p-3 dark:border-slate-805 dark:bg-slate-900/10 space-y-1">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-3 dark:border-slate-800 dark:bg-slate-900/10 space-y-1">
             <h3 className="px-3 text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Workspace</h3>
             
             <button

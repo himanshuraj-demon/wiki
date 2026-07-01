@@ -128,7 +128,7 @@ export const UserProfile = () => {
         
         {/* Stats Column */}
         <div className="md:col-span-1 space-y-6">
-          <div className="p-5 rounded-2xl border border-gray-250 bg-gray-50 dark:border-slate-805 dark:bg-slate-900/30 space-y-4">
+          <div className="p-5 rounded-2xl border border-gray-200 bg-gray-50 dark:border-slate-800 dark:bg-slate-900/30 space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 flex items-center gap-1">
               <Sparkles className="h-4 w-4" /> Contribution Stats
             </h3>
