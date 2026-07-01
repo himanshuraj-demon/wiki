@@ -1,5 +1,8 @@
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import Revision from '../models/Revision.js';
+import Article from '../models/Article.js';
+import AuditLog from '../models/AuditLog.js';
 
 // @desc    Get all users
 // @route   GET /users
@@ -82,6 +85,14 @@ export const updateUser = async (req, res, next) => {
         message: `Your account role has been updated to ${req.body.role} by an Administrator.`,
         link: '/dashboard',
         sender: req.user._id,
+      });
+
+      await AuditLog.create({
+        action: 'CHANGE_ROLE',
+        performedBy: req.user._id,
+        targetType: 'User',
+        targetId: user._id,
+        details: `Updated role of "${user.name}" (${user.email}) from ${oldRole} to ${req.body.role}`,
       });
     }
 

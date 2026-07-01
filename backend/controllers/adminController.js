@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Report from '../models/Report.js';
 import Notification from '../models/Notification.js';
 import Announcement from '../models/Announcement.js';
+import AuditLog from '../models/AuditLog.js';
 
 // @desc    Get Admin Panel Analytics
 // @route   GET /admin/analytics
@@ -149,6 +150,15 @@ export const approveArticle = async (req, res, next) => {
       sender: req.user._id,
     });
 
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'APPROVE_ARTICLE',
+      performedBy: req.user._id,
+      targetType: 'Article',
+      targetId: article._id,
+      details: `Approved article "${article.title}" (version ${article.version})`,
+    });
+
     res.status(200).json({
       success: true,
       message: `Article "${article.title}" approved successfully.`,
@@ -187,6 +197,15 @@ export const rejectArticle = async (req, res, next) => {
       message: `Your article "${article.title}" has been rejected. Reason: ${reason || 'Does not comply with community guidelines.'}`,
       link: '/dashboard',
       sender: req.user._id,
+    });
+
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'REJECT_ARTICLE',
+      performedBy: req.user._id,
+      targetType: 'Article',
+      targetId: article._id,
+      details: `Rejected article "${article.title}" (version ${article.version}). Reason: ${reason || 'No guidelines provided'}`,
     });
 
     res.status(200).json({
@@ -246,6 +265,15 @@ export const resolveReport = async (req, res, next) => {
 
     await report.save();
 
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'RESOLVE_REPORT',
+      performedBy: req.user._id,
+      targetType: 'Report',
+      targetId: report._id,
+      details: `Resolved report with status: ${status || report.status}. Notes: ${adminNotes || 'None'}`,
+    });
+
     res.status(200).json({
       success: true,
       message: 'Report resolved successfully',
@@ -294,9 +322,38 @@ export const postAnnouncement = async (req, res, next) => {
       author: req.user._id,
     });
 
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'POST_ANNOUNCEMENT',
+      performedBy: req.user._id,
+      targetType: 'Announcement',
+      targetId: announcement._id,
+      details: `Created announcement: "${announcement.title}"`,
+    });
+
     res.status(201).json({
       success: true,
       announcement,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get administrative audit logs
+// @route   GET /admin/audit-logs
+// @access  Private/Admin
+export const getAuditLogs = async (req, res, next) => {
+  try {
+    const logs = await AuditLog.find({})
+      .populate('performedBy', 'name email role avatar')
+      .sort({ createdAt: -1 })
+      .limit(100);
+
+    res.status(200).json({
+      success: true,
+      count: logs.length,
+      logs,
     });
   } catch (error) {
     next(error);

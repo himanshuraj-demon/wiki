@@ -473,8 +473,8 @@ export const ArticleView = () => {
             {/* Markdown parser content */}
             <article className="wiki-content prose dark:prose-invert font-sans text-gray-850 dark:text-slate-200 flow-root">
               
-              {/* Wikipedia style float-right Infobox */}
-              <div className="float-right w-full sm:w-72 sm:ml-6 mb-6 p-4 bg-[#f8f9fa] dark:bg-slate-900 border border-[#a2a9b1] dark:border-slate-800 text-sm space-y-4">
+              {/* Wikipedia style float-right Infobox (Desktop) */}
+              <div className="hidden sm:block float-right w-72 sm:ml-6 mb-6 p-4 bg-[#f8f9fa] dark:bg-slate-900 border border-[#a2a9b1] dark:border-slate-800 text-sm space-y-4 rounded-xl shadow-sm">
                 
                 {/* Author Section */}
                 <div className="text-center border-b border-gray-200 dark:border-slate-800 pb-3">
@@ -497,8 +497,8 @@ export const ArticleView = () => {
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 border-b border-gray-200 dark:border-slate-800 pb-1">
                     Tools & Options
                   </h3>
-                  <ul className="space-y-2 text-xs">
-                    <li>
+                  <ul className="space-y-2 text-xs list-none">
+                    <li className='list-none'>
                       <button
                         onClick={handleShare}
                         className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
@@ -506,7 +506,7 @@ export const ArticleView = () => {
                         <Share2 className="h-4 w-4 text-gray-400" /> Share page link
                       </button>
                     </li>
-                    <li>
+                    <li className='list-none'>
                       <button
                         onClick={handlePrint}
                         className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
@@ -514,16 +514,8 @@ export const ArticleView = () => {
                         <Printer className="h-4 w-4 text-gray-400" /> Print format
                       </button>
                     </li>
-                    <li>
-                      <button
-                        onClick={() => toast.success('Downloaded PDF bundle!')}
-                        className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
-                      >
-                        <Download className="h-4 w-4 text-gray-400" /> Download PDF
-                      </button>
-                    </li>
                     {user && (
-                      <li className="border-t border-gray-200 dark:border-slate-850 pt-2 mt-2">
+                      <li className="border-t border-gray-200 dark:border-slate-850 pt-2 mt-2 list-none">
                         <button
                           onClick={handleReport}
                           className="flex w-full items-center gap-2 text-red-500 hover:text-red-700 transition-colors"
@@ -641,7 +633,71 @@ export const ArticleView = () => {
                 }}
               >
                 {preprocessMarkdown(articleData.content)}
-              </ReactMarkdown>
+               </ReactMarkdown>
+
+              {/* Wikipedia style bottom Infobox (Mobile) */}
+              <div className="block sm:hidden w-full mt-8 p-4 bg-[#f8f9fa] dark:bg-slate-900 border border-[#a2a9b1] dark:border-slate-800 text-sm space-y-4 rounded-xl shadow-sm">
+                
+                {/* Author Section */}
+                <div className="text-center border-b border-gray-200 dark:border-slate-800 pb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 mb-2">
+                    Page Author
+                  </h3>
+                  <img
+                    src={articleData.author?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(articleData.author?.name || 'Admin')}`}
+                    alt={articleData.author?.name}
+                    className="h-14 w-14 rounded-full object-cover mx-auto mb-2 border border-gray-200"
+                  />
+                  <Link to={`/profile/${articleData.author?.email}`} className="block font-bold text-gray-900 dark:text-white hover:underline">
+                    {articleData.author?.name}
+                  </Link>
+                  <span className="text-xs text-gray-500 capitalize">{articleData.author?.role}</span>
+                </div>
+
+                {/* Quick Actions / Tools Section */}
+                <div className="space-y-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-500 border-b border-gray-200 dark:border-slate-800 pb-1">
+                    Tools & Options
+                  </h3>
+                  <ul className="space-y-2 text-xs">
+                    <li>
+                      <button
+                        onClick={handleShare}
+                        className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
+                      >
+                        <Share2 className="h-4 w-4 text-gray-400" /> Share page link
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={handlePrint}
+                        className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
+                      >
+                        <Printer className="h-4 w-4 text-gray-400" /> Print format
+                      </button>
+                    </li>
+                    <li>
+                      <button
+                        onClick={() => toast.success('Downloaded PDF bundle!')}
+                        className="flex w-full items-center gap-2 text-gray-700 hover:text-iitgn-maroon dark:text-slate-350 dark:hover:text-white transition-colors"
+                      >
+                        <Download className="h-4 w-4 text-gray-400" /> Download PDF
+                      </button>
+                    </li>
+                    {user && (
+                      <li className="border-t border-gray-200 dark:border-slate-850 pt-2 mt-2">
+                        <button
+                          onClick={handleReport}
+                          className="flex w-full items-center gap-2 text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          <AlertTriangle className="h-4 w-4 text-red-400" /> Report page issue
+                        </button>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+              </div>
             </article>
 
             {/* References Bibliography Section */}

@@ -109,14 +109,14 @@ export const googleLogin = async (req, res, next) => {
     // If user does not exist, create new account
     if (!user) {
       const isFirstUser = (await User.countDocuments({})) === 0;
-      const role = isFirstUser ? 'Admin' : 'Student';
+      const role = 'Student';
 
       user = await User.create({
         name,
         email,
         avatar: picture || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
         role,
-        badges: isFirstUser ? ['Founder', 'Admin'] : ['Novice'],
+        badges:['Novice'],
         bio: 'IITGN Wiki member.',
       });
     }
@@ -137,6 +137,8 @@ export const logout = async (req, res, next) => {
     res.cookie('token', 'none', {
       expires: new Date(Date.now() + 10 * 1000), // 10 seconds
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     });
 
     res.status(200).json({

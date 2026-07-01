@@ -8,6 +8,7 @@ import {
   resolveReport,
   getSystemLogs,
   postAnnouncement,
+  getAuditLogs,
 } from '../controllers/adminController.js';
 import { protect } from '../middleware/authMiddleware.js';
 import { authorize } from '../middleware/roleMiddleware.js';
@@ -27,6 +28,7 @@ router.get('/reports', getReports);
 router.patch('/reports/:id', resolveReport);
 
 router.get('/logs', getSystemLogs);
+router.get('/audit-logs', getAuditLogs);
 router.post('/announcements', postAnnouncement);
 
 export default router;

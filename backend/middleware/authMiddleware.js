@@ -3,15 +3,30 @@ import User from '../models/User.js';
 
 export const protect = async (req, res, next) => {
   let token;
+  let authHeaderToken = null;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    authHeaderToken = req.headers.authorization.split(' ')[1];
+  }
 
   // Retrieve token from cookie or Authorization header
   if (req.cookies && req.cookies.token) {
     token = req.cookies.token;
-  } else if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
+
+    // CSRF Protection: For state-changing methods, if using cookie-based auth,
+    // verify that the request includes the matching Authorization header.
+    // Attacking pages cannot set custom request headers for cross-origin fetches.
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+      if (!authHeaderToken || authHeaderToken !== token) {
+        res.status(403);
+        return next(new Error('CSRF Warning: State-changing request blocked due to missing or mismatched authorization header.'));
+      }
+    }
+  } else if (authHeaderToken) {
+    token = authHeaderToken;
   }
 
   if (!token) {

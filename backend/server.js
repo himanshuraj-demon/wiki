@@ -1,5 +1,5 @@
+import 'dotenv/config';
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -31,8 +31,7 @@ import { apiLimiter } from './middleware/rateLimiter.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load env variables
-dotenv.config();
+
 
 // Connect to Database
 connectDB();
@@ -46,9 +45,30 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Security Middlewares
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://res.cloudinary.com",
+          "https://api.dicebear.com",
+          "https://*.dicebear.com",
+          "https://lh3.googleusercontent.com",
+        ],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        connectSrc: ["'self'", "https://api.cloudinary.com", "https://lh3.googleusercontent.com"],
+        frameSrc: ["'self'"],
+      },
+    },
+  })
+);
 
 // CORS Configuration
 const corsOptions = {

@@ -1,5 +1,9 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
+import dotenv from 'dotenv';
+
+// Load env variables
+dotenv.config();
 
 // Configure Cloudinary only if the variables are set
 const isCloudinaryConfigured = 

@@ -1,5 +1,6 @@
 import Category from '../models/Category.js';
 import slugify from 'slugify';
+import AuditLog from '../models/AuditLog.js';
 
 // @desc    Get all categories
 // @route   GET /categories
@@ -44,6 +45,15 @@ export const createCategory = async (req, res, next) => {
       description,
     });
 
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'CREATE_CATEGORY',
+      performedBy: req.user._id,
+      targetType: 'Category',
+      targetId: category._id,
+      details: `Created category "${category.name}" (slug: ${category.slug})`,
+    });
+
     res.status(201).json({
       success: true,
       category,
@@ -77,6 +87,15 @@ export const updateCategory = async (req, res, next) => {
 
     await category.save();
 
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'UPDATE_CATEGORY',
+      performedBy: req.user._id,
+      targetType: 'Category',
+      targetId: category._id,
+      details: `Updated category to "${category.name}" (description: ${category.description || 'none'})`,
+    });
+
     res.status(200).json({
       success: true,
       category,
@@ -99,6 +118,15 @@ export const deleteCategory = async (req, res, next) => {
     }
 
     await Category.findByIdAndDelete(req.params.id);
+
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'DELETE_CATEGORY',
+      performedBy: req.user._id,
+      targetType: 'Category',
+      targetId: category._id,
+      details: `Deleted category "${category.name}"`,
+    });
 
     res.status(200).json({
       success: true,

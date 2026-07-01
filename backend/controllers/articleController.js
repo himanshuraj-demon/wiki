@@ -5,6 +5,8 @@ import Bookmark from '../models/Bookmark.js';
 import Notification from '../models/Notification.js';
 import slugify from 'slugify';
 import mongoose from 'mongoose';
+import { sanitizeMarkdown } from '../utils/sanitizer.js';
+import AuditLog from '../models/AuditLog.js';
 
 // @desc    Get all articles
 // @route   GET /articles
@@ -66,6 +68,8 @@ export const getArticles = async (req, res, next) => {
         page: parseInt(page),
         limit: parseInt(limit),
         pages: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) < Math.ceil(total / parseInt(limit)),
+        hasPrev: parseInt(page) > 1,
       },
       articles,
     });
@@ -147,11 +151,13 @@ export const createArticle = async (req, res, next) => {
       finalStatus = 'Pending';
     }
 
+    const sanitizedContent = sanitizeMarkdown(content);
+
     const article = await Article.create({
       title,
       slug,
       category: categoryObj._id,
-      content,
+      content: sanitizedContent,
       bannerImage: bannerImage || '',
       galleryImages: galleryImages || [],
       author: req.user._id,
@@ -167,7 +173,7 @@ export const createArticle = async (req, res, next) => {
       editor: req.user._id,
       version: 1,
       summary: 'Initial page creation',
-      contentSnapshot: content,
+      contentSnapshot: sanitizedContent,
     });
 
     // Notify admins if pending
@@ -247,10 +253,13 @@ export const updateArticle = async (req, res, next) => {
 
     // Track if content changed
     let contentChanged = false;
-    if (content && content !== article.content) {
-      article.content = content;
-      article.version += 1;
-      contentChanged = true;
+    if (content) {
+      const sanitizedContent = sanitizeMarkdown(content);
+      if (sanitizedContent !== article.content) {
+        article.content = sanitizedContent;
+        article.version += 1;
+        contentChanged = true;
+      }
     }
 
     // Status logic
@@ -266,14 +275,14 @@ export const updateArticle = async (req, res, next) => {
 
     await article.save();
 
-    // Create revision only if content changed
+    // Create revision snapshot
     if (contentChanged) {
       await Revision.create({
         article: article._id,
         editor: req.user._id,
         version: article.version,
         summary: summary || `Updated to version ${article.version}`,
-        contentSnapshot: content,
+        contentSnapshot: article.content,
       });
 
       // Notify the original author if someone else edited it
@@ -322,6 +331,15 @@ export const deleteArticle = async (req, res, next) => {
     
     // Clean up bookmarks
     await Bookmark.deleteMany({ article: req.params.id });
+
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'DELETE_ARTICLE',
+      performedBy: req.user._id,
+      targetType: 'Article',
+      targetId: article._id,
+      details: `Deleted article "${article.title}" (slug: ${article.slug})`,
+    });
 
     res.status(200).json({
       success: true,
@@ -388,6 +406,15 @@ export const restoreArticleVersion = async (req, res, next) => {
       version: article.version,
       summary: `Restored to version ${version}`,
       contentSnapshot: revision.contentSnapshot,
+    });
+
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'RESTORE_ARTICLE',
+      performedBy: req.user._id,
+      targetType: 'Article',
+      targetId: article._id,
+      details: `Restored article "${article.title}" to version ${version}`,
     });
 
     res.status(200).json({

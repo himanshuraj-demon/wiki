@@ -6,6 +6,21 @@ import { protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 // protect authentication and execute multer upload.single('image')
-router.post('/', protect, upload.single('image'), uploadImage);
+router.post(
+  '/',
+  protect,
+  (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message,
+        });
+      }
+      next();
+    });
+  },
+  uploadImage
+);
 
 export default router;
