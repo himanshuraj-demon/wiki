@@ -25,7 +25,8 @@ export const AuthProvider = ({ children }) => {
     fetchConfig();
   }, []);
 
-  const checkMe = async () => {
+  // Fetch authenticated user profile only once
+  const refreshUser = async () => {
     try {
       const { data } = await api.get('/auth/me');
       if (data.success && data.user) {
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (token) {
-      checkMe();
+      refreshUser();
     } else {
       setLoading(false);
     }
@@ -88,15 +89,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Profile Update local synchronizer
+  // Profile Update local synchronizer (alias of setUser for compatibility)
   const updateLocalUser = (updatedUser) => {
     setUser(updatedUser);
+  };
+
+  const [profileCache, setProfileCache] = useState({});
+
+  const getCachedProfile = async (email, force = false) => {
+    if (!force && profileCache[email]) {
+      return profileCache[email];
+    }
+    const { data } = await api.get(`/users/profile/${encodeURIComponent(email)}`);
+    if (data.success) {
+      setProfileCache((prev) => ({
+        ...prev,
+        [email]: data,
+      }));
+      return data;
+    }
+    throw new Error('Failed to load profile');
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        setUser,
         token,
         loading,
         googleClientId,
@@ -104,7 +123,9 @@ export const AuthProvider = ({ children }) => {
         loginWithGoogle,
         logout,
         updateLocalUser,
-        checkMe,
+        refreshUser,
+        profileCache,
+        getCachedProfile,
       }}
     >
       <GoogleOAuthProvider clientId={googleClientId || "your-mock-id.apps.googleusercontent.com"}>

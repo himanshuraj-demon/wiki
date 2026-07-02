@@ -7,45 +7,33 @@ import {
   Bell, Settings, Save, CheckCircle2, ChevronRight, Eye, Edit
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useDashboard } from '../context/DashboardContext.jsx';
 import api from '../utils/api.js';
 
 export const UserDashboard = () => {
-  const { user, updateLocalUser } = useAuth();
+  const { user, updateLocalUser, getCachedProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'overview'; // 'overview', 'articles', 'drafts', 'bookmarks', 'notifications', 'profile'
 
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { dashboard: dashboardData, refreshDashboard, loading: dashboardLoading } = useDashboard();
   const [profileSaving, setProfileSaving] = useState(false);
 
   const { register: profileRegister, handleSubmit: handleProfileSubmit, setValue } = useForm();
 
-  const fetchDashboard = async () => {
-    try {
-      const { data } = await api.get('/dashboard');
-      if (data.success) {
-        setDashboardData(data);
-        
-        // Pre-populate profile fields
-        if (user) {
-          setValue('name', user.name);
-          setValue('avatar', user.avatar);
-          setValue('bio', user.bio);
-          setValue('department', user.department);
-          setValue('batch', user.batch);
-          setValue('interests', user.interests?.join(', ') || '');
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
+  // Pre-populate profile fields
+  useEffect(() => {
+    if (user) {
+      setValue('name', user.name);
+      setValue('avatar', user.avatar);
+      setValue('bio', user.bio);
+      setValue('department', user.department);
+      setValue('batch', user.batch);
+      setValue('interests', user.interests?.join(', ') || '');
     }
-  };
+  }, [user, setValue, dashboardData]);
 
   useEffect(() => {
-    fetchDashboard();
+    refreshDashboard();
   }, [user, activeTab]);
 
   const setTab = (tabName) => {
@@ -56,7 +44,7 @@ export const UserDashboard = () => {
     try {
       const { data } = await api.patch(`/dashboard/notifications/${id}`);
       if (data.success) {
-        fetchDashboard();
+        refreshDashboard(true);
         toast.success('Notification marked as read');
       }
     } catch (err) {
@@ -68,7 +56,7 @@ export const UserDashboard = () => {
     try {
       const { data } = await api.post('/dashboard/notifications/read-all');
       if (data.success) {
-        fetchDashboard();
+        refreshDashboard(true);
         toast.success('All notifications marked as read');
       }
     } catch (err) {
@@ -82,6 +70,9 @@ export const UserDashboard = () => {
       const { data: resData } = await api.patch(`/users/${user._id}`, data);
       if (resData.success) {
         updateLocalUser(resData.user);
+        if (getCachedProfile) {
+          await getCachedProfile(user.email, true);
+        }
         toast.success('Profile details updated successfully!');
         setTab('overview');
       }
@@ -93,7 +84,7 @@ export const UserDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (!dashboardData) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-iitgn-maroon border-t-transparent"></div>

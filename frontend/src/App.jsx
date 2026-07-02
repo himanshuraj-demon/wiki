@@ -20,6 +20,9 @@ import NotFound from './pages/NotFound.jsx';
 
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { CategoryProvider } from './context/CategoryContext.jsx';
+import { DashboardProvider } from './context/DashboardContext.jsx';
+import { ArticleProvider } from './context/ArticleContext.jsx';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -104,27 +107,33 @@ export const App = () => {
 
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4500,
-          style: {
-            background: '#333',
-            color: '#fff',
-          },
-          success: {
-            style: {
-              background: '#14532d',
-            },
-          },
-          error: {
-            style: {
-              background: '#7f1d1d',
-            },
-          },
-        }}
-      />
+      <CategoryProvider>
+        <DashboardProvider>
+          <ArticleProvider>
+            <RouterProvider router={router} />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4500,
+                style: {
+                  background: '#333',
+                  color: '#fff',
+                },
+                success: {
+                  style: {
+                    background: '#14532d',
+                  },
+                },
+                error: {
+                  style: {
+                    background: '#7f1d1d',
+                  },
+                },
+              }}
+            />
+          </ArticleProvider>
+        </DashboardProvider>
+      </CategoryProvider>
     </AuthProvider>
   );
 };

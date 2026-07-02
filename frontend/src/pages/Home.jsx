@@ -7,8 +7,10 @@ import {
 import api from '../utils/api.js';
 import { ArticleSkeleton } from '../components/SkeletonLoaders.jsx';
 import { stripMarkdown } from '../utils/helpers.js';
+import { useArticle } from '../context/ArticleContext.jsx';
 
 export const Home = () => {
+  const { articles: allArticles, loading: articlesLoading, refreshArticles } = useArticle();
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState({
     articles: 0,
@@ -23,37 +25,31 @@ export const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchHomeData = async () => {
-      try {
-        // Fetch articles list to populate recent, popular, and stats
-        const { data } = await api.get('/articles');
-        if (data.success) {
-          const allArticles = data.articles || [];
-          setRecentArticles(allArticles.slice(0, 4));
-          
-          // Sort by views for popular
-          const sortedByViews = [...allArticles].sort((a, b) => b.views - a.views);
-          setPopularArticles(sortedByViews.slice(0, 4));
-
-          // Set featured article
-          const featured = allArticles.find(a => a.slug === 'indian-institute-of-technology-gandhinagar') || allArticles[0];
-          setFeaturedArticle(featured);
-
-          // Update stats dynamically
-          setStats(prev => ({
-            ...prev,
-            articles: data.pagination?.total || allArticles.length,
-          }));
-        }
-      } catch (err) {
-        console.error('Error fetching homepage data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHomeData();
+    refreshArticles();
   }, []);
+
+  useEffect(() => {
+    if (allArticles && allArticles.length > 0) {
+      setRecentArticles(allArticles.slice(0, 4));
+      
+      // Sort by views for popular
+      const sortedByViews = [...allArticles].sort((a, b) => b.views - a.views);
+      setPopularArticles(sortedByViews.slice(0, 4));
+
+      // Set featured article
+      const featured = allArticles.find(a => a.slug === 'indian-institute-of-technology-gandhinagar') || allArticles[0];
+      setFeaturedArticle(featured);
+
+      // Update stats dynamically
+      setStats(prev => ({
+        ...prev,
+        articles: allArticles.length,
+      }));
+      setLoading(false);
+    } else if (!articlesLoading) {
+      setLoading(false);
+    }
+  }, [allArticles, articlesLoading]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

@@ -4,6 +4,9 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { Save, ArrowLeft, Plus, Trash2, FileText, Globe, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useCategory } from '../context/CategoryContext.jsx';
+import { useDashboard } from '../context/DashboardContext.jsx';
+import { useArticle } from '../context/ArticleContext.jsx';
 import api from '../utils/api.js';
 import Editor from '../components/Editor.jsx';
 
@@ -13,7 +16,9 @@ export const ArticleEdit = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [categories, setCategories] = useState([]);
+  const { categories } = useCategory();
+  const { refreshDashboard } = useDashboard();
+  const { refreshArticles } = useArticle();
   const [content, setContent] = useState('');
   const [initialContent, setInitialContent] = useState('');
   const [references, setReferences] = useState([{ title: '', url: '' }]);
@@ -58,21 +63,7 @@ export const ArticleEdit = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty, saving]);
 
-  // Load Categories on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const { data } = await api.get('/categories');
-        if (data.success) {
-          setCategories(data.categories || []);
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error('Failed to load categories');
-      }
-    };
-    fetchCategories();
-  }, []);
+
 
   // Load Article details if editing
   useEffect(() => {
@@ -174,6 +165,8 @@ export const ArticleEdit = () => {
               : 'Article page is now live!', 
           { id: toastId }
         );
+        refreshDashboard(true);
+        refreshArticles(true);
         navigate('/dashboard');
       }
     } catch (err) {

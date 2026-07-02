@@ -5,9 +5,11 @@ import { toast } from 'react-hot-toast';
 import { 
   History, MessageSquare, BookOpen, ThumbsUp, Bookmark, Share2, 
   Download, Printer, AlertTriangle, ArrowLeft, RefreshCw, Calendar, Eye, 
-  ChevronRight, ListCollapse, Award, Trash2
+  ChevronRight, ListCollapse, Award, Trash2,Pen
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useDashboard } from '../context/DashboardContext.jsx';
+import { useArticle } from '../context/ArticleContext.jsx';
 import api from '../utils/api.js';
 import CommentSection from '../components/CommentSection.jsx';
 import DiffViewer from '../components/DiffViewer.jsx';
@@ -148,6 +150,8 @@ export const ArticleView = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'article'; // 'article', 'discussion', 'history'
   const { user } = useAuth();
+  const { refreshDashboard } = useDashboard();
+  const { refreshArticles } = useArticle();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -251,6 +255,27 @@ export const ArticleView = () => {
     }
   };
 
+  const handleDeleteRevision = async (revisionId, revVersion) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to permanently delete revision v${revVersion}? This action cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const { data } = await api.delete(`/articles/${articleData._id}/revisions/${revisionId}`);
+      if (data.success) {
+        toast.success(`Revision v${revVersion} deleted successfully!`);
+        setRevisions((prev) => prev.filter((r) => r._id !== revisionId));
+        if (selectedRevA?._id === revisionId) setSelectedRevA(null);
+        if (selectedRevB?._id === revisionId) setSelectedRevB(null);
+        setShowDiff(false);
+      }
+    } catch (err) {
+      console.error('Delete revision error:', err);
+      toast.error(err.response?.data?.message || 'Failed to delete revision version');
+    }
+  };
+
   const handleReport = async () => {
     const reason = prompt('Please specify why you are reporting this article:');
     if (!reason) return;
@@ -274,6 +299,8 @@ export const ArticleView = () => {
       const { data } = await api.delete(`/articles/${articleData._id}`);
       if (data.success) {
         toast.success('Article deleted successfully!');
+        refreshDashboard(true);
+        refreshArticles(true);
         navigate('/');
       }
     } catch (err) {
@@ -364,7 +391,7 @@ export const ArticleView = () => {
           </div>
 
           {/* Quick Actions (Likes, Bookmarks, Edit) */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-between">
             
             {/* Like */}
             <button
@@ -395,7 +422,6 @@ export const ArticleView = () => {
               title={user ? 'Bookmark this page' : 'Login to bookmark'}
             >
               <Bookmark className={`h-4.5 w-4.5 ${isBookmarked ? 'fill-current' : ''}`} />
-              <span>Bookmark</span>
             </button>
 
             {/* Edit Button */}
@@ -404,7 +430,7 @@ export const ArticleView = () => {
                 to={`/editor/${articleData._id}`}
                 className="flex items-center gap-1.5 border border-iitgn-maroon hover:bg-iitgn-maroon hover:text-white text-iitgn-maroon dark:border-red-400 dark:text-red-450 dark:hover:bg-red-500 dark:hover:text-white rounded-full px-4 py-1.5 text-xs font-semibold shadow-sm transition-all"
               >
-                Edit Page
+                <Pen className="h-3.5 w-3.5" /> Edit 
               </Link>
             )}
 
@@ -414,7 +440,7 @@ export const ArticleView = () => {
                 onClick={handleDelete}
                 className="flex items-center gap-1.5 border border-red-600 hover:bg-red-600 hover:text-white text-red-600 dark:border-red-500 dark:text-red-450 dark:hover:bg-red-600 dark:hover:text-white rounded-full px-4 py-1.5 text-xs font-semibold shadow-sm transition-all"
               >
-                <Trash2 className="h-3.5 w-3.5" /> Delete Page
+                <Trash2 className="h-3.5 w-3.5" /> Delete
               </button>
             )}
 
@@ -425,7 +451,7 @@ export const ArticleView = () => {
         <div className="flex border-b border-gray-200 dark:border-slate-800">
           <button
             onClick={() => setTab('article')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all
+            className={`flex items-center gap-2 px-4 py-3 md:text-sm text-xs font-semibold border-b-2 transition-all
               ${activeTab === 'article' 
                 ? 'border-iitgn-maroon text-iitgn-maroon dark:border-red-500 dark:text-red-400' 
                 : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'
@@ -437,7 +463,7 @@ export const ArticleView = () => {
           
           <button
             onClick={() => setTab('discussion')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all
+            className={`flex items-center gap-2 px-4 py-3 md:text-sm text-xs font-semibold border-b-2 transition-all
               ${activeTab === 'discussion' 
                 ? 'border-iitgn-maroon text-iitgn-maroon dark:border-red-500 dark:text-red-400' 
                 : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'
@@ -449,7 +475,7 @@ export const ArticleView = () => {
 
           <button
             onClick={() => setTab('history')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all
+            className={`flex items-center gap-2 px-4 py-3 md:text-sm text-xs font-semibold border-b-2 transition-all
               ${activeTab === 'history' 
                 ? 'border-iitgn-maroon text-iitgn-maroon dark:border-red-500 dark:text-red-400' 
                 : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-white'
@@ -837,15 +863,25 @@ export const ArticleView = () => {
 
                     </div>
 
-                    {/* Restore option (Admin/Moderator only) */}
-                    {isStaff && rev.version !== articleData.version && (
-                      <button
-                        onClick={() => handleRestore(rev.version)}
-                        className="rounded-lg border border-gray-200 bg-white hover:bg-gray-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-slate-300 shrink-0 self-start sm:self-center"
-                      >
-                        Revert to this version
-                      </button>
-                    )}
+                    {/* Revision Action Controls */}
+                    <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                      {isStaff && rev.version !== articleData.version && (
+                        <button
+                          onClick={() => handleRestore(rev.version)}
+                          className="rounded-lg border border-gray-200 bg-white hover:bg-gray-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-slate-300"
+                        >
+                          Revert to this version
+                        </button>
+                      )}
+                      {user && user.role === 'Admin' && rev.version !== articleData.version && (
+                        <button
+                          onClick={() => handleDeleteRevision(rev._id, rev.version)}
+                          className="rounded-lg border border-red-200 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400"
+                        >
+                          Delete version
+                        </button>
+                      )}
+                    </div>
                   </li>
                 );
               })}

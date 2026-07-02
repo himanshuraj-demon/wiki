@@ -6,9 +6,11 @@ import {
   Hash, Heart, Shield, Sparkles, Compass
 } from 'lucide-react';
 import api from '../utils/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export const UserProfile = () => {
   const { email } = useParams();
+  const { getCachedProfile } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -16,10 +18,8 @@ export const UserProfile = () => {
     const fetchProfile = async () => {
       setLoading(true);
       try {
-        const { data } = await api.get(`/users/profile/${encodeURIComponent(email)}`);
-        if (data.success) {
-          setProfileData(data);
-        }
+        const data = await getCachedProfile(email);
+        setProfileData(data);
       } catch (err) {
         console.error(err);
         toast.error('Failed to load user profile');
@@ -27,8 +27,10 @@ export const UserProfile = () => {
         setLoading(false);
       }
     };
-    fetchProfile();
-  }, [email]);
+    if (email) {
+      fetchProfile();
+    }
+  }, [email, getCachedProfile]);
 
   if (loading) {
     return (

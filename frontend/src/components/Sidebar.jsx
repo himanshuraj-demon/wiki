@@ -5,10 +5,12 @@ import {
   HelpCircle as AboutIcon, Mail, Settings, PlusCircle, ArrowLeftRight, HelpCircle as HelpIcon, Sparkles, LogIn
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useArticle } from '../context/ArticleContext.jsx';
 import api from '../utils/api.js';
 
 export const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed }) => {
   const { user } = useAuth();
+  const { articles } = useArticle();
   const navigate = useNavigate();
 
   // Helper to close sidebar on mobile click
@@ -18,22 +20,15 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, collapsed }) => {
     }
   };
 
-  const handleRandomArticle = async () => {
-    try {
-      const { data } = await api.get('/articles');
-      if (data.success && data.articles.length > 0) {
-        const randomIndex = Math.floor(Math.random() * data.articles.length);
-        const article = data.articles[randomIndex];
-        navigate(`/articles/${article.slug}`);
-      } else {
-        navigate('/');
-      }
-    } catch (err) {
-      console.error(err);
+  const handleRandomArticle = () => {
+    if (articles && articles.length > 0) {
+      const randomIndex = Math.floor(Math.random() * articles.length);
+      const article = articles[randomIndex];
+      navigate(`/articles/${article.slug}`);
+    } else {
       navigate('/');
-    } finally {
-      closeSidebarOnMobile();
     }
+    closeSidebarOnMobile();
   };
 
   const navGroups = [

@@ -427,6 +427,56 @@ export const restoreArticleVersion = async (req, res, next) => {
   }
 };
 
+// @desc    Delete a specific revision version of an article
+// @route   DELETE /articles/:id/revisions/:revisionId
+// @access  Private (Admin Only)
+export const deleteArticleRevision = async (req, res, next) => {
+  try {
+    const { id, revisionId } = req.params;
+
+    const article = await Article.findById(id);
+    if (!article) {
+      res.status(404);
+      return next(new Error('Article not found'));
+    }
+
+    const revision = await Revision.findById(revisionId);
+    if (!revision) {
+      res.status(404);
+      return next(new Error('Revision not found'));
+    }
+
+    if (revision.article.toString() !== id) {
+      res.status(400);
+      return next(new Error('Revision does not belong to this article'));
+    }
+
+    // Do not allow deleting the current active version of the article
+    if (revision.version === article.version) {
+      res.status(400);
+      return next(new Error('Cannot delete the current active version of the article.'));
+    }
+
+    await Revision.findByIdAndDelete(revisionId);
+
+    // Create Audit Log
+    await AuditLog.create({
+      action: 'DELETE_REVISION',
+      performedBy: req.user._id,
+      targetType: 'Article',
+      targetId: article._id,
+      details: `Deleted version v${revision.version} revision log of article "${article.title}"`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Revision v${revision.version} deleted successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Like / Unlike an article
 // @route   POST /articles/:id/like
 // @access  Private

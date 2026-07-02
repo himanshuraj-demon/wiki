@@ -2,62 +2,69 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Sun, Moon, Bell, User, LogOut, LayoutDashboard, Settings, Menu, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useDashboard } from '../context/DashboardContext.jsx';
 import useDarkMode from '../hooks/useDarkMode.js';
 import api from '../utils/api.js';
 
 export const Navbar = ({ toggleSidebar, sidebarOpen }) => {
   const { user, logout } = useAuth();
+  const { dashboard } = useDashboard();
   const [isDark, toggleDarkMode] = useDarkMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const navigate = useNavigate();
+
+  const notifications = dashboard?.notifications?.filter(n => !n.readStatus) || [];
 
   const searchRef = useRef(null);
   const userMenuRef = useRef(null);
 
   // Fetch search suggestions
   useEffect(() => {
-    if (searchQuery.trim().length < 2) {
+    const trimmedQuery = searchQuery.trim();
+
+    if (!trimmedQuery) {
       setSuggestions([]);
+      setSearchLoading(false);
       return;
     }
 
+    if (trimmedQuery.length < 2) {
+      setSuggestions([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    setSearchLoading(true);
+    const controller = new AbortController();
+
     const delayDebounceFn = setTimeout(async () => {
       try {
-        const { data } = await api.get(`/search?q=${encodeURIComponent(searchQuery)}`);
+        const { data } = await api.get(`/search?q=${encodeURIComponent(trimmedQuery)}`, {
+          signal: controller.signal,
+        });
         if (data.success) {
           setSuggestions(data.suggestions || []);
         }
       } catch (err) {
-        console.error(err);
+        if (err.name !== 'CanceledError' && err.message !== 'canceled') {
+          console.error(err);
+        }
+      } finally {
+        setSearchLoading(false);
       }
-    }, 300);
+    }, 500); // 500ms debounce
 
-    return () => clearTimeout(delayDebounceFn);
+    return () => {
+      clearTimeout(delayDebounceFn);
+      controller.abort();
+    };
   }, [searchQuery]);
 
-  // Fetch user notifications (if logged in)
-  useEffect(() => {
-    if (!user) return;
 
-    const fetchNotifications = async () => {
-      try {
-        const { data } = await api.get('/dashboard');
-        if (data.success) {
-          setNotifications(data.notifications?.filter(n => !n.readStatus) || []);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // refresh every minute
-    return () => clearInterval(interval);
-  }, [user]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -136,37 +143,55 @@ export const Navbar = ({ toggleSidebar, sidebarOpen }) => {
                 setShowSuggestions(true);
               }}
               onFocus={() => setShowSuggestions(true)}
-              className="w-full rounded-full border border-gray-300 bg-gray-50 py-2 pl-4 pr-10 text-sm outline-none transition-all focus:border-iitgn-maroon focus:bg-white dark:border-slate-800 dark:bg-slate-900 dark:focus:border-red-500 dark:focus:bg-slate-950 dark:text-white"
+              className="w-full rounded-full border border-gray-300 bg-gray-50 py-2 pl-4 pr-12 text-sm outline-none transition-all focus:border-iitgn-maroon focus:bg-white dark:border-slate-800 dark:bg-slate-900 dark:focus:border-red-500 dark:focus:bg-slate-950 dark:text-white"
             />
-            <button
-              type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-iitgn-maroon dark:hover:text-red-500"
-            >
-              <Search className="h-5 w-5" />
-            </button>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+              {searchLoading && (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-iitgn-maroon border-t-transparent dark:border-red-500"></div>
+              )}
+              <button
+                type="submit"
+                className="text-gray-400 hover:text-iitgn-maroon dark:hover:text-red-500"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+            </div>
           </form>
 
           {/* Suggestions Dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute left-0 mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-900">
-              <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Search Suggestions
-              </p>
-              <ul className="space-y-1">
-                {suggestions.map((s) => (
-                  <li key={s.slug}>
-                    <button
-                      onClick={() => handleSuggestionClick(s.slug)}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-800"
-                    >
-                      <span className="font-medium text-gray-900 dark:text-white">{s.title}</span>
-                      <span className="text-xs text-iitgn-maroon dark:text-red-400 bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded">
-                        {s.category}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+          {showSuggestions && searchQuery.trim().length >= 2 && (
+            <div className="absolute left-0 mt-2 w-full rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-slate-800 dark:bg-slate-900 z-50">
+              {searchLoading ? (
+                <div className="flex items-center justify-center py-4 text-xs text-gray-500 dark:text-slate-400">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-iitgn-maroon border-t-transparent dark:border-red-500 mr-2"></div>
+                  Searching...
+                </div>
+              ) : suggestions.length > 0 ? (
+                <>
+                  <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Search Suggestions
+                  </p>
+                  <ul className="space-y-1">
+                    {suggestions.map((s) => (
+                      <li key={s.slug}>
+                        <button
+                          onClick={() => handleSuggestionClick(s.slug)}
+                          className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-slate-800"
+                        >
+                          <span className="font-medium text-gray-900 dark:text-white">{s.title}</span>
+                          <span className="text-xs text-iitgn-maroon dark:text-red-400 bg-red-50 dark:bg-red-950/20 px-2 py-0.5 rounded">
+                            {s.category}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <div className="px-3 py-4 text-center text-xs text-gray-550 dark:text-slate-400">
+                  No suggestions found for "{searchQuery}"
+                </div>
+              )}
             </div>
           )}
         </div>

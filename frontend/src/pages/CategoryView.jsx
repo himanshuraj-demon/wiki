@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { BookOpen, Calendar, Eye, Compass } from 'lucide-react';
 import api from '../utils/api.js';
 import { stripMarkdown } from '../utils/helpers.js';
+import { useCategory } from '../context/CategoryContext.jsx';
 
 export const CategoryView = () => {
   const { categorySlug } = useParams();
@@ -16,6 +17,8 @@ export const CategoryView = () => {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrev, setHasPrev] = useState(false);
 
+  const { categories } = useCategory();
+
   // Reset page to 1 when category slug changes
   useEffect(() => {
     setPage(1);
@@ -25,27 +28,24 @@ export const CategoryView = () => {
     const fetchCategoryArticles = async () => {
       setLoading(true);
       try {
-        // 1. Fetch categories list to match name/description
-        const { data: catData } = await api.get('/categories');
-        if (catData.success) {
-          const currentCat = catData.categories?.find(c => c.slug === categorySlug);
-          if (currentCat) {
-            setCategoryName(currentCat.name);
-            setCategoryDesc(currentCat.description);
+        // Match name/description using categories from context
+        const currentCat = categories?.find(c => c.slug === categorySlug);
+        if (currentCat) {
+          setCategoryName(currentCat.name);
+          setCategoryDesc(currentCat.description);
+        } else {
+          // Treat custom slug maps cleanly (e.g. Hostels -> hostels, Research -> research-labs)
+          const cleanSlug = categorySlug.toLowerCase();
+          const matched = categories?.find(c => c.slug.includes(cleanSlug) || cleanSlug.includes(c.slug));
+          if (matched) {
+            setCategoryName(matched.name);
+            setCategoryDesc(matched.description);
           } else {
-            // Treat custom slug maps cleanly (e.g. Hostels -> hostels, Research -> research-labs)
-            const cleanSlug = categorySlug.toLowerCase();
-            const matched = catData.categories?.find(c => c.slug.includes(cleanSlug) || cleanSlug.includes(c.slug));
-            if (matched) {
-              setCategoryName(matched.name);
-              setCategoryDesc(matched.description);
-            } else {
-              setCategoryName(categorySlug.replace(/-/g, ' '));
-            }
+            setCategoryName(categorySlug.replace(/-/g, ' '));
           }
         }
 
-        // 2. Fetch articles matching category slug with pagination (limit to 10 articles per page)
+        // Fetch articles matching category slug with pagination (limit to 10 articles per page)
         const { data: artData } = await api.get(`/articles?category=${categorySlug}&page=${page}&limit=10`);
         if (artData.success) {
           setArticles(artData.articles || []);
@@ -62,7 +62,7 @@ export const CategoryView = () => {
     };
 
     fetchCategoryArticles();
-  }, [categorySlug, page]);
+  }, [categorySlug, page, categories]);
 
   if (loading) {
     return (
